@@ -16,9 +16,9 @@ def save_portfolio(portfolio):
     with open(PORTFOLIO_FILE, "w") as f:
         json.dump(portfolio, f, indent=4)
 
-def update_markdown_report(timestamp, price, sma, signal, cash, sol, total_value, pnl, action_msg):
-    """Aggiorna il file report.md con l'ultimo stato della simulazione"""
-    report_content = f"""# 🤖 Report Paper Trading Solana ($30)
+def update_markdown_report(timestamp, price, sma, rsi, signal, cash, sol, total_value, pnl, action_msg):
+    """Aggiorna il file report.md con i dati di RSI e SMA"""
+    report_content = f"""# 🤖 Report Paper Trading Solana ($30) - Strategia RSI + SMA
 
 *Ultimo aggiornamento:* `{timestamp} UTC`
 
@@ -33,21 +33,22 @@ def update_markdown_report(timestamp, price, sma, signal, cash, sol, total_value
 
 ---
 
-## 📈 Ultima Analisi di Mercato
+## 📈 Ultima Analisi Tecnica
 - **Prezzo Corrente SOL:** `${price:.2f}`
-- **Media Mobile (SMA):** `${sma:.2f}`
-- **Segnale Tecnico:** `{signal}`
-- **Esito Azione:** `{action_msg}`
+- **Media Mobile (SMA 20):** `${sma:.2f}`
+- **RSI (14 periodi):** `{rsi:.1f}` {'🟢 (Ipervenduto)' if rsi < 35 else '🔴 (Ipercomprato)' if rsi > 70 else '⚪ (Neutro)'}
+- **Segnale Generato:** `{signal}`
+- **Azione Eseguita:** `{action_msg}`
 
 ---
-*Bot autonomo eseguito tramite GitHub Actions (Modalità Paper Trading).*
+*Bot autonomo eseguito tramite GitHub Actions.*
 """
     with open(REPORT_FILE, "w", encoding="utf-8") as f:
         f.write(report_content)
 
 def run_paper_trade():
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{timestamp}] === Ciclo Portafoglio Paper Trading ($30) ===")
+    print(f"[{timestamp}] === Ciclo Paper Trading RSI + SMA ($30) ===")
     
     price = get_sol_price()
     if not price:
@@ -58,15 +59,14 @@ def run_paper_trade():
     cash = portfolio["cash"]
     sol = portfolio["sol"]
     
-    signal, sma = analyze_market()
-    print(f"Prezzo SOL: ${price:.2f} | SMA: ${sma:.2f} | Segnale: {signal}")
+    signal, sma, rsi = analyze_market()
     print(f"Portafoglio attuale -> Cash: ${cash:.2f} | SOL: {sol:.4f}")
 
     total_value = cash + (sol * price)
     pnl = total_value - portfolio['initial_capital']
     print(f"Valore Totale: ${total_value:.2f} (P&L: {pnl:+.2f}$)")
 
-    action_msg = "Nessuna azione eseguita (Attesa condizioni)."
+    action_msg = "Nessuna azione eseguita (In attesa di condizioni ottimali)."
 
     # Logica di simulazione acquisto/vendita
     if "BUY" in signal and cash > 2.0:
@@ -83,14 +83,12 @@ def run_paper_trade():
         action_msg = f"Venduti {sol:.4f} SOL a ${price:.2f} per ${cash_earned:.2f}"
         print(f">>> [SIMULAZIONE VENDITA] {action_msg}")
     else:
-        print(">>> [ATTESA] Nessuna modifica alla posizione attuale.")
+        print(">>> [ATTESA] Nessuna modifica alla posizione.")
 
     save_portfolio(portfolio)
+    update_markdown_report(timestamp, price, sma, rsi, signal, portfolio["cash"], portfolio["sol"], total_value, pnl, action_msg)
     
-    # Aggiorna il file report.md con i nuovi dati
-    update_markdown_report(timestamp, price, sma, signal, portfolio["cash"], portfolio["sol"], total_value, pnl, action_msg)
-    
-    print("=== Fine ciclo e aggiornamento report completati ===")
+    print("=== Fine ciclo completato con successo ===")
 
 if __name__ == "__main__":
     run_paper_trade()
