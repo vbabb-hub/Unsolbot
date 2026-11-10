@@ -33,6 +33,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Assicura che i file esistano prima di aggiungerli
+          touch report.md
+          touch src/portfolio.json
+          
           git add src/portfolio.json report.md
           git diff --staged --quiet || git commit -m "Update portfolio state and report [skip ci]"
           git push
