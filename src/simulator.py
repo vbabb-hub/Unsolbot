@@ -14,7 +14,8 @@ def load_portfolio():
     return {
         "cash": 30.00, 
         "initial_capital": 30.00, 
-        "positions": []
+        "positions": [],
+        "prev_rsi": None
     }
 
 def save_portfolio(portfolio):
@@ -50,7 +51,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
     else:
         pos_rows_html = """
         <tr>
-            <td colspan="5" class="py-8 text-center text-slate-500 italic">Nessuna posizione attiva. In attesa di segnale BUY.</td>
+            <td colspan="5" class="py-8 text-center text-slate-500 italic">Nessuna posizione attiva. In attesa di segnale di rimbalzo (SMA + RSI).</td>
         </tr>"""
 
     pnl_text_color = "text-emerald-400" if pnl >= 0 else "text-rose-400"
@@ -74,7 +75,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold text-xl">S</div>
                 <div>
                     <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Unsolbot <span class="text-xs font-normal uppercase tracking-wider px-2 py-0.5 ml-2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Paper Trading</span></h1>
-                    <p class="text-xs text-slate-400 mt-0.5">Strategia Dinamica (20% su Capitale Corrente) • Max Cap 80% • No Stop-Loss</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Strategia Combinata (SMA 20 + RSI Rebound > 35) • Max Cap 80% • No Stop-Loss</p>
                 </div>
             </div>
             <div class="mt-4 md:mt-0 text-left md:text-right">
@@ -266,7 +267,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
 
 def run_paper_trade():
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{timestamp}] === Avvio Ciclo Bot Trading (Compounding Dinamico) ===")
+    print(f"[{timestamp}] === Avvio Ciclo Bot Trading (SMA + RSI Rebound) ===")
     
     price, changes = get_sol_market_data()
     if not price:
@@ -276,6 +277,7 @@ def run_paper_trade():
     portfolio = load_portfolio()
     signal, sma, rsi = analyze_market()
     
+    prev_rsi = portfolio.get("prev_rsi", None)
     action_logs = []
 
     total_sol_held = sum(p['amount'] for p in portfolio['positions'])
@@ -299,12 +301,23 @@ def run_paper_trade():
     total_sol_held = sum(p['amount'] for p in portfolio['positions'])
     total_value = portfolio["cash"] + (total_sol_held * price)
 
-    # 2. CONTROLLO SEGNALE D'ACQUISTO CON CAPITALE DINAMICO (20% del totale corrente)
+    # 2. LOGICA COMBINATA: TREND SMA 20 + RSI REBOUND (> 35)
     max_investment_allowed = total_value * 0.80
     current_invested = sum(p['cost'] for p in portfolio['positions'])
     amount_per_tranche = total_value * 0.20
 
-    if "BUY" in signal:
+    # Filtro Trend: Il prezzo deve essere sopra la SMA 20
+    trend_ok = price > sma
+
+    # Trigger RSI: L'RSI era sotto 35 ed è risalito sopra 35 (oppure primo avvio sotto 35)
+    if prev_rsi is None:
+        rsi_trigger = (rsi < 35)  # Al primo avvio se è già in ipervenduto
+    else:
+        rsi_trigger = (prev_rsi < 35 and rsi >= 35)
+
+    should_buy = trend_ok and rsi_trigger
+
+    if should_buy:
         if current_invested < max_investment_allowed and portfolio["cash"] >= amount_per_tranche:
             sol_bought = amount_per_tranche / price
             new_position = {
@@ -316,15 +329,18 @@ def run_paper_trade():
             portfolio['positions'].append(new_position)
             portfolio["cash"] -= amount_per_tranche
             
-            msg = f"🛒 Nuova Tranche (20% din.: ${amount_per_tranche:.2f}): Acquistati {sol_bought:.4f} SOL a ${price:.2f}. TP a ${new_position['tp']:.2f}"
+            msg = f"🛒 BUY (SMA + RSI Rebound): Acquistati {sol_bought:.4f} SOL (${amount_per_tranche:.2f}) a ${price:.2f}. TP a ${new_position['tp']:.2f}"
             action_logs.append(msg)
-            print(f">>> [ACQUISTO DINAMICO] {msg}")
+            print(f">>> [ACQUISTO STRATEGICO] {msg}")
         else:
-            msg = "Segnale BUY ricevuto, ma cap 80% del capitale corrente raggiunto o cash insufficiente."
+            msg = "Segnale di rimbalzo valido, ma cap 80% raggiunto o cash insufficiente."
             if not action_logs: action_logs.append(msg)
     else:
         if not action_logs:
-            action_logs.append(f"In attesa (posizioni attive: {len(portfolio['positions'])}). Nessun TP raggiunto.")
+            action_logs.append(f"In attesa (posizioni attive: {len(portfolio['positions'])}). Trend OK: {trend_ok}, RSI Corrente: {rsi:.1f}")
+
+    # Aggiornamo la memoria del precedente RSI per il prossimo ciclo
+    portfolio["prev_rsi"] = rsi
 
     action_msg = " | ".join(action_logs)
 
