@@ -26,19 +26,18 @@ def format_pct_badge(val):
     return f'<span class="px-2 py-1 rounded-md text-xs font-mono font-semibold border {color}">{val:+.2f}%</span>'
 
 def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, total_value, pnl, action_msg):
-    """Aggiorna sia index.html (Dark Dashboard per GitHub Pages) sia README.md (per il repo)"""
-    
     invested_capital = sum(p['cost'] for p in portfolio['positions'])
     total_sol = sum(p['amount'] for p in portfolio['positions'])
-    exposure_pct = (invested_capital / portfolio['initial_capital']) * 100
+    
+    # Esposizione percentuale sul capitale totale CORRENTE
+    exposure_pct = (invested_capital / total_value * 100) if total_value > 0 else 0.0
     num_pos = len(portfolio['positions'])
     pnl_pct = (pnl / portfolio['initial_capital']) * 100
 
-    # --- 1. GENERAZIONE INDEX.HTML (WEB DASHBOARD PROFESSIONALE) ---
+    # --- 1. GENERAZIONE INDEX.HTML ---
     pos_rows_html = ""
     if num_pos > 0:
         for i, pos in enumerate(portfolio['positions'], 1):
-            curr_val = pos['amount'] * price
             pos_pnl_pct = ((price - pos['entry']) / pos['entry']) * 100
             pos_color = "text-emerald-400" if pos_pnl_pct >= 0 else "text-rose-400"
             pos_rows_html += f"""
@@ -76,7 +75,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold text-xl">S</div>
                 <div>
                     <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Unsolbot <span class="text-xs font-normal uppercase tracking-wider px-2 py-0.5 ml-2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Paper Trading</span></h1>
-                    <p class="text-xs text-slate-400 mt-0.5">Strategia Frazionata (20% / Tranche) • Max Cap 80% • No Stop-Loss</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Strategia Dinamica (20% su Capitale Corrente) • Max Cap 80% • No Stop-Loss</p>
                 </div>
             </div>
             <div class="mt-4 md:mt-0 text-left md:text-right">
@@ -97,7 +96,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
                     </div>
                     <div class="grid grid-cols-2 gap-4 my-2">
                         <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                            <div class="text-xs text-slate-400">Valore Totale</div>
+                            <div class="text-xs text-slate-400">Valore Totale (Corrente)</div>
                             <div class="text-2xl font-mono font-bold text-white mt-1">${total_value:.2f}</div>
                             <div class="text-xs text-slate-500 mt-1">Iniziale: ${portfolio['initial_capital']:.2f}</div>
                         </div>
@@ -159,7 +158,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
             <!-- 3. POSIZIONI APERTE -->
             <section class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 shadow-lg">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">3. Posizioni Aperte ({num_pos}/4 Slot)</h2>
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">3. Posizioni Aperte ({num_pos} Tranches)</h2>
                     <span class="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">TP +5% • No Stop-Loss</span>
                 </div>
                 <div class="overflow-x-auto">
@@ -212,7 +211,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
     with open(HTML_FILE, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    # --- 2. GENERAZIONE README.MD (CON RIGHE VUOTE CORRETTE PER MARKDOWN) ---
+    # --- 2. GENERAZIONE README.MD ---
     md_positions = ""
     if num_pos > 0:
         for i, pos in enumerate(portfolio['positions'], 1):
@@ -247,7 +246,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
 
 ---
 
-### 🎯 3. Posizioni Aperte ({num_pos}/4 Slot - No Stop-Loss)
+### 🎯 3. Posizioni Aperte ({num_pos} Tranches - No Stop-Loss)
 
 | Tranche | Quantità | Ingresso | Target TP (+5%) |
 | :--- | :--- | :--- | :--- |
@@ -268,7 +267,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
 
 def run_paper_trade():
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{timestamp}] === Avvio Ciclo Bot Trading ===")
+    print(f"[{timestamp}] === Avvio Ciclo Bot Trading (Compounding Dinamico) ===")
     
     price, changes = get_sol_market_data()
     if not price:
@@ -280,6 +279,10 @@ def run_paper_trade():
     
     action_logs = []
 
+    # Calcolo preliminare del valore totale corrente del portafoglio prima delle azioni
+    total_sol_held = sum(p['amount'] for p in portfolio['positions'])
+    total_value = portfolio["cash"] + (total_sol_held * price)
+
     # 1. CONTROLLO TAKE PROFIT INDIPENDENTE
     remaining_positions = []
     freed_cash = 0.0
@@ -288,17 +291,23 @@ def run_paper_trade():
         if price >= pos['tp']:
             sale_value = pos['amount'] * price
             freed_cash += sale_value
-            action_logs.append(f"🎯 TP raggiunto! Venduti {pos['amount']:.4f} SOL (Entrata: ${pos['entry']:.2f}) a ${price:.2f} per ${sale_value:.2f}")
+            action_logs.append(f"🎯 TP raggiunto! Venduti {pos['amount']:.4f} SOL a ${price:.2f} per ${sale_value:.2f}")
         else:
             remaining_positions.append(pos)
 
     portfolio['positions'] = remaining_positions
     portfolio['cash'] += freed_cash
 
-    # 2. CONTROLLO SEGNALE D'ACQUISTO (Max 80% / 4 Tranches da 20%)
-    max_investment_allowed = portfolio['initial_capital'] * 0.80
+    # Ricalcoliamo il valore totale dopo aver eventualmente incassato i Take Profit
+    total_sol_held = sum(p['amount'] for p in portfolio['positions'])
+    total_value = portfolio["cash"] + (total_sol_held * price)
+
+    # 2. CONTROLLO SEGNALE D'ACQUISTO CON CAPITALE DINAMICO (20% del totale corrente)
+    max_investment_allowed = total_value * 0.80  # Max 80% del valore totale corrente
     current_invested = sum(p['cost'] for p in portfolio['positions'])
-    amount_per_tranche = portfolio['initial_capital'] * 0.20
+    
+    # La tranche è esattamente il 20% del VALORE TOTALE CORRENTE del portafoglio
+    amount_per_tranche = total_value * 0.20
 
     if "BUY" in signal:
         if current_invested < max_investment_allowed and portfolio["cash"] >= amount_per_tranche:
@@ -312,18 +321,19 @@ def run_paper_trade():
             portfolio['positions'].append(new_position)
             portfolio["cash"] -= amount_per_tranche
             
-            msg = f"🛒 Nuova Tranche (20%): Acquistati {sol_bought:.4f} SOL a ${price:.2f}. TP a ${new_position['tp']:.2f}"
+            msg = f"🛒 Nuova Tranche (20% din.: ${amount_per_tranche:.2f}): Acquistati {sol_bought:.4f} SOL a ${price:.2f}. TP a ${new_position['tp']:.2f}"
             action_logs.append(msg)
-            print(f">>> [ACQUISTO] {msg}")
+            print(f">>> [ACQUISTO DINAMICO] {msg}")
         else:
-            msg = "Segnale BUY ricevuto, ma cap 80% raggiunto o cash insufficiente."
+            msg = "Segnale BUY ricevuto, ma cap 80% del capitale corrente raggiunto o cash insufficiente."
             if not action_logs: action_logs.append(msg)
     else:
         if not action_logs:
-            action_logs.append(f"In attesa (posizioni attive: {len(portfolio['positions'])}/4). Nessun TP raggiunto.")
+            action_logs.append(f"In attesa (posizioni attive: {len(portfolio['positions'])}). Nessun TP raggiunto.")
 
     action_msg = " | ".join(action_logs)
 
+    # Ricalcolo finale post-operazione
     total_sol_held = sum(p['amount'] for p in portfolio['positions'])
     total_value = portfolio["cash"] + (total_sol_held * price)
     pnl = total_value - portfolio['initial_capital']
