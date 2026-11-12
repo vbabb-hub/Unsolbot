@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from bot_logic import get_sol_price, analyze_market
+from bot_logic import get_sol_market_data, analyze_market
 
 PORTFOLIO_FILE = "src/portfolio.json"
 REPORT_FILE = "report.md"
@@ -10,35 +10,58 @@ def load_portfolio():
     if os.path.exists(PORTFOLIO_FILE):
         with open(PORTFOLIO_FILE, "r") as f:
             return json.load(f)
-    return {"cash": 30.00, "sol": 0.0, "initial_capital": 30.00}
+    return {"cash": 30.00, "sol": 0.0, "initial_capital": 30.00, "position_active": False, "entry_price": 0.0, "take_profit_price": 0.0}
 
 def save_portfolio(portfolio):
     with open(PORTFOLIO_FILE, "w") as f:
         json.dump(portfolio, f, indent=4)
 
-def update_markdown_report(timestamp, price, sma, rsi, signal, cash, sol, total_value, pnl, action_msg):
-    """Aggiorna il file report.md con i dati di RSI e SMA"""
-    report_content = f"""# 🤖 Report Paper Trading Solana ($30) - Strategia RSI + SMA
+def update_markdown_report(timestamp, price, changes, sma, rsi, signal, portfolio, total_value, pnl, action_msg):
+    """Crea un report visivo completo per la home del repository"""
+    
+    pos_status = "🟢 Posizione Aperta" if portfolio["position_active"] else "⚪ Nessuna Posizione (Liquidità disponibile)"
+    entry = f"${portfolio['entry_price']:.2f}" if portfolio["position_active"] else "N/A"
+    tp = f"${portfolio['take_profit_price']:.2f} (+5%)" if portfolio["position_active"] else "N/A"
+    
+    report_content = f"""# 🤖 Dashboard Bot di Trading Solana ($30)
 
 *Ultimo aggiornamento:* `{timestamp} UTC`
 
-## 📊 Stato Attuale del Portafoglio
+---
+
+## 💰 1. Capitale e Portafoglio
 | Metrica | Valore |
 | :--- | :--- |
 | **Capitale Iniziale** | `$30.00` |
-| **Liquidità (Cash)** | `${cash:.2f}` |
-| **Solana Posseduti (SOL)** | `{sol:.4f} SOL` |
+| **Liquidità Residua (Cash)** | **`${portfolio['cash']:.2f}`** |
+| **Solana in Portafoglio** | `{portfolio['sol']:.4f} SOL` |
 | **Valore Totale Portafoglio** | **${total_value:.2f}** |
-| **Profitto / Perdita (P&L)** | **${pnl:+.2f}** |
+| **Profitto / Perdita (P&L)** | **${pnl:+.2f}** ({ (pnl/30)*100:+.2f}% ) |
 
 ---
 
-## 📈 Ultima Analisi Tecnica
-- **Prezzo Corrente SOL:** `${price:.2f}`
+## 📈 2. Andamento di Solana (Timeframe)
+| 1 Ora (1h) | 1 Giorno (1d) | 1 Settimana (1w) | 1 Mese (1m) | 1 Anno (1y) | All-Time High |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| `{changes['h']:+.2f}%` | `{changes['1d']:+.2f}%` | `{changes['1w']:+.2f}%` | `{changes['1m']:+.2f}%` | `{changes['1y']:+.2f}%` | `${changes['ath']:.2f}` |
+
+*(Prezzo attuale SOL: **${price:.2f}**)*
+
+---
+
+## 📊 3. Posizioni Aperte e Strategia (No Stop-Loss)
+- **Stato:** `{pos_status}`
+- **Prezzo di Entrata:** `{entry}`
+- **Target Take Profit (TP):** `{tp}`
+- **Modalità:** *HODL / Long-only (Nessuno Stop Loss attivo)*
+
+---
+
+## 🔬 4. Diagnostica Tecnica & Ultima Azione
 - **Media Mobile (SMA 20):** `${sma:.2f}`
-- **RSI (14 periodi):** `{rsi:.1f}` {'🟢 (Ipervenduto)' if rsi < 35 else '🔴 (Ipercomprato)' if rsi > 70 else '⚪ (Neutro)'}
-- **Segnale Generato:** `{signal}`
-- **Azione Eseguita:** `{action_msg}`
+- **RSI (14):** `{rsi:.1f}`
+- **Segnale Algoritmo:** `{signal}`
+- **Azione Recente:** `{action_msg}`
 
 ---
 *Bot autonomo eseguito tramite GitHub Actions.*
@@ -48,48 +71,61 @@ def update_markdown_report(timestamp, price, sma, rsi, signal, cash, sol, total_
 
 def run_paper_trade():
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{timestamp}] === Ciclo Paper Trading RSI + SMA ($30) ===")
+    print(f"[{timestamp}] === Avvio Ciclo Bot Trading ===")
     
-    price = get_sol_price()
+    price, changes = get_sol_market_data()
     if not price:
-        print("Impossibile procedere senza prezzo.")
+        print("Impossibile recuperare il prezzo di Solana.")
         return
 
     portfolio = load_portfolio()
-    cash = portfolio["cash"]
-    sol = portfolio["sol"]
-    
     signal, sma, rsi = analyze_market()
-    print(f"Portafoglio attuale -> Cash: ${cash:.2f} | SOL: {sol:.4f}")
-
-    total_value = cash + (sol * price)
+    
+    total_value = portfolio["cash"] + (portfolio["sol"] * price)
     pnl = total_value - portfolio['initial_capital']
-    print(f"Valore Totale: ${total_value:.2f} (P&L: {pnl:+.2f}$)")
+    
+    action_msg = "Nessuna operazione effettuata."
 
-    action_msg = "Nessuna azione eseguita (In attesa di condizioni ottimali)."
+    # 1. Controllo Take Profit se c'è una posizione aperta (SENZA STOP LOSS)
+    if portfolio["position_active"]:
+        if price >= portfolio["take_profit_price"]:
+            # Raggiunto il Take Profit! Vendi tutto in utile
+            cash_earned = portfolio["sol"] * price
+            portfolio["cash"] += cash_earned
+            action_msg = f"🎯 Take Profit raggiunto a ${price:.2f}! Venduti {portfolio['sol']:.4f} SOL per ${cash_earned:.2f}"
+            portfolio["sol"] = 0.0
+            portfolio["position_active"] = False
+            portfolio["entry_price"] = 0.0
+            portfolio["take_profit_price"] = 0.0
+            print(f">>> {action_msg}")
+        else:
+            action_msg = f"Posizione attiva. In attesa del TP (${portfolio['take_profit_price']:.2f}). Nessuno Stop Loss applicato."
+            print(f">>> [HODL] {action_msg}")
+            
+    # 2. Controllo Segnale di Acquisto se siamo flat (liquidità disponibile)
+    elif not portfolio["position_active"] and portfolio["cash"] > 2.0:
+        if "BUY" in signal:
+            amount_to_spend = portfolio["cash"]
+            sol_bought = amount_to_spend / price
+            portfolio["sol"] = sol_bought
+            portfolio["cash"] = 0.0
+            portfolio["position_active"] = True
+            portfolio["entry_price"] = price
+            # Imposta un Take Profit al +5% (senza stop loss)
+            portfolio["take_profit_price"] = price * 1.05 
+            
+            action_msg = f"🛒 Acquistati {sol_bought:.4f} SOL a ${price:.2f}. TP impostato a ${portfolio['take_profit_price']:.2f}."
+            print(f">>> [ACQUISTO] {action_msg}")
+        else:
+            action_msg = "In attesa di segnale di ingresso valido."
 
-    # Logica di simulazione acquisto/vendita
-    if "BUY" in signal and cash > 2.0:
-        amount_to_spend = cash
-        sol_bought = amount_to_spend / price
-        portfolio["sol"] += sol_bought
-        portfolio["cash"] = 0.0
-        action_msg = f"Acquistati {sol_bought:.4f} SOL a ${price:.2f}"
-        print(f">>> [SIMULAZIONE ACQUISTO] {action_msg}")
-    elif "SELL" in signal and sol > 0:
-        cash_earned = sol * price
-        portfolio["cash"] += cash_earned
-        portfolio["sol"] = 0.0
-        action_msg = f"Venduti {sol:.4f} SOL a ${price:.2f} per ${cash_earned:.2f}"
-        print(f">>> [SIMULAZIONE VENDITA] {action_msg}")
-    else:
-        print(">>> [ATTESA] Nessuna modifica alla posizione.")
+    total_value = portfolio["cash"] + (portfolio["sol"] * price)
+    pnl = total_value - portfolio['initial_capital']
 
     save_portfolio(portfolio)
-    update_markdown_report(timestamp, price, sma, rsi, signal, portfolio["cash"], portfolio["sol"], total_value, pnl, action_msg)
+    update_markdown_report(timestamp, price, {'h': changes['1h'], '1d': changes['1d'], '1w': changes['1w'], '1m': changes['1m'], '1y': changes['1y'], 'ath': changes['ath']}, sma, rsi, signal, portfolio, total_value, pnl, action_msg)
     
-    print("=== Fine ciclo completato con successo ===")
+    print("=== Ciclo completato con successo ===")
 
 if __name__ == "__main__":
     run_paper_trade()
-    
