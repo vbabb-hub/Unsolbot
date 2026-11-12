@@ -1,46 +1,43 @@
-# 🤖 Solana Algorithmic Trading Bot ($30 Paper Portfolio)
+# 🤖 Unsolbot - Solana Paper Trading ($30)
 
-*Ultimo aggiornamento:* `2026-11-12 09:28:49 UTC`
+🌐 **Dashboard Web Live:** [https://vbabb-hub.github.io/Unsolbot/](https://vbabb-hub.github.io/Unsolbot/)  
+*Ultimo aggiornamento:* `2026-11-12 09:43:36 UTC`
 
 ---
 
-### 📦 1. PORTAFOGLIO & CAPITALE (Max 4 Tranches da 20%)
+### 📦 1. Portafoglio & Capitale
+
 | Metrica | Valore |
 | :--- | :--- |
 | **Capitale Iniziale** | `$30.00` |
 | **Cash Disponibile** | `$24.00` |
-| **Asset Totali in SOL** | `0.0724 SOL` |
-| **Valore Totale** | **$30.00** |
-| **Performance (P&L)** | 🟢 **$+0.00** (+0.00% ) |
+| **Asset in SOL** | `0.0724 SOL` |
+| **Valore Totale** | **$30.01** |
+| **Performance (P&L)** | **$+0.01** (+0.02%) |
 
 ---
 
-### 📊 2. TREND SOLANA (TIMEFRAME)
+### 📊 2. Trend Solana (`$82.95`)
+
 | 1h | 1d | 1w | 1m | 1y | ATH |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| `+0.07%` | `-0.31%` | `-14.29%` | `-23.00%` | `-47.52%` | **`$293.31`** |
-
-*(Prezzo spot attuale: **$82.86**)*
+| `+0.10%` | `-0.19%` | `-14.20%` | `-22.92%` | `-47.47%` | **`$293.31`** |
 
 ---
 
-### 🎯 3. POSIZIONI APERTE INDIPENDENTI (No Stop-Loss)
-| Tranche | Quantità SOL | Prezzo Ingresso | Target Take Profit (TP) |
+### 🎯 3. Posizioni Aperte (1/4 Slot - No Stop-Loss)
+
+| Tranche | Quantità | Ingresso | Target TP (+5%) |
 | :--- | :--- | :--- | :--- |
 | Tranche #1 | 0.0724 SOL | $82.86 | $87.00 (+5%) |
 
-
-*Stato generale:* `🟢 ATTIVO (1 posizioni aperte - 20% capitale)`
-
 ---
 
-### ⚙️ 4. DIAGNOSTICA TECNICA & ULTIMO EVENTO
-| Indicatore / Log | Stato Corrente |
+### ⚙️ 4. Diagnostica & Ultima Azione
+
+| Parametro | Valore |
 | :--- | :--- |
-| **Media Mobile (SMA 20)** | `$82.83` |
-| **RSI (14 periodi)** | `49.8` |
-| **Segnale Modello** | `BUY_SIGNAL (Trend Rialzista)` |
-| **Ultima Azione** | `🛒 Nuova Tranche (20%): Acquistati 0.0724 SOL a $82.86. TP mirato a $87.00` |
-
----
-*Esecuzione automatica tramite GitHub Actions.*
+| **SMA (20)** | `$82.84` |
+| **RSI (14)** | `61.1` |
+| **Segnale** | `HOLD (Attesa)` |
+| **Evento** | `In attesa (posizioni attive: 1/4). Nessun TP raggiunto.` |
