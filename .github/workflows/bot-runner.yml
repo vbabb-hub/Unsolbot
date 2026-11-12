@@ -29,15 +29,14 @@ jobs:
       - name: Esecuzione del Bot di Simulazione
         run: python src/simulator.py
 
-      - name: Salva lo stato del portafoglio e il report su GitHub
+      - name: Aggiorna la dashboard sul README.md
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Assicura che i file esistano prima di aggiungerli
-          touch report.md
+          touch README.md
           touch src/portfolio.json
           
-          git add src/portfolio.json report.md
-          git diff --staged --quiet || git commit -m "Update portfolio state and report [skip ci]"
+          git add src/portfolio.json README.md
+          git diff --staged --quiet || git commit -m "Update dashboard on README.md [skip ci]"
           git push
