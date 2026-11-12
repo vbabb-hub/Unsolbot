@@ -29,14 +29,15 @@ jobs:
       - name: Esecuzione del Bot di Simulazione
         run: python src/simulator.py
 
-      - name: Aggiorna la dashboard sul README.md
+      - name: Aggiorna la dashboard web e il README
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
+          touch index.html
           touch README.md
           touch src/portfolio.json
           
-          git add src/portfolio.json README.md
-          git diff --staged --quiet || git commit -m "Update dashboard on README.md [skip ci]"
+          git add src/portfolio.json README.md index.html
+          git diff --staged --quiet || git commit -m "Update web dashboard and README [skip ci]"
           git push
