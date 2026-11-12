@@ -1,6 +1,6 @@
 {
-  "cash": 30.00,
-  "initial_capital": 30.00,
-  "positions": [],
-  "prev_rsi": null
+    "cash": 30.0,
+    "initial_capital": 30.0,
+    "positions": [],
+    "prev_rsi": 60.739342646448634
 }
