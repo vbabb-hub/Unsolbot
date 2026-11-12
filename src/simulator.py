@@ -12,12 +12,8 @@ def load_portfolio():
             return json.load(f)
     return {
         "cash": 30.00, 
-        "sol": 0.0, 
         "initial_capital": 30.00, 
-        "position_active": False, 
-        "entry_price": 0.0, 
-        "take_profit_price": 0.0,
-        "invested_slots": 0
+        "positions": []
     }
 
 def save_portfolio(portfolio):
@@ -25,15 +21,24 @@ def save_portfolio(portfolio):
         json.dump(portfolio, f, indent=4)
 
 def update_readme_dashboard(timestamp, price, changes, sma, rsi, signal, portfolio, total_value, pnl, action_msg):
-    """Scrive la dashboard aggiornata con la regola del 20% sul README.md"""
+    """Scrive la dashboard aggiornata con posizioni indipendenti sul README.md"""
     
-    invested_capital = portfolio['initial_capital'] - portfolio['cash']
+    invested_capital = sum(p['cost'] for p in portfolio['positions'])
+    total_sol = sum(p['amount'] for p in portfolio['positions'])
     exposure_pct = (invested_capital / portfolio['initial_capital']) * 100
     
-    pos_status = f"🟢 ATTIVO ({exposure_pct:.0f}% capitale esposto - Slot: {portfolio['invested_slots']}/4)" if portfolio["invested_slots"] > 0 else "⚪ FLAT (Liquidità disponibile)"
-    entry = f"${portfolio['entry_price']:.2f}" if portfolio["position_active"] else "---"
-    tp = f"${portfolio['take_profit_price']:.2f} (+5%)" if portfolio["position_active"] else "---"
+    num_pos = len(portfolio['positions'])
+    pos_status = f"🟢 ATTIVO ({num_pos} posizioni aperte - {exposure_pct:.0f}% capitale)" if num_pos > 0 else "⚪ FLAT (Liquidità disponibile)"
+    
     pnl_color = "🟢" if pnl >= 0 else "🔴"
+
+    # Tabella delle posizioni aperte dettagliate
+    positions_rows = ""
+    if num_pos > 0:
+        for i, pos in enumerate(portfolio['positions'], 1):
+            positions_rows += f"| Tranche #{i} | {pos['amount']:.4f} SOL | ${pos['entry']:.2f} | ${pos['tp']:.2f} (+5%) |\n"
+    else:
+        positions_rows = "| Nessuna posizione attiva | --- | --- | --- |\n"
 
     dashboard_content = f"""# 🤖 Solana Algorithmic Trading Bot ($30 Paper Portfolio)
 
@@ -41,12 +46,12 @@ def update_readme_dashboard(timestamp, price, changes, sma, rsi, signal, portfol
 
 ---
 
-### 📦 1. PORTAFOGLIO & CAPITALE (Max 80% Esposizione)
+### 📦 1. PORTAFOGLIO & CAPITALE (Max 4 Tranches da 20%)
 | Metrica | Valore |
 | :--- | :--- |
 | **Capitale Iniziale** | `$30.00` |
 | **Cash Disponibile** | `${portfolio['cash']:.2f}` |
-| **Asset in SOL** | `{portfolio['sol']:.4f} SOL` |
+| **Asset Totali in SOL** | `{total_sol:.4f} SOL` |
 | **Valore Totale** | **${total_value:.2f}** |
 | **Performance (P&L)** | {pnl_color} **${pnl:+.2f}** ({ (pnl/30)*100:+.2f}% ) |
 
@@ -61,10 +66,12 @@ def update_readme_dashboard(timestamp, price, changes, sma, rsi, signal, portfol
 
 ---
 
-### 🎯 3. POSIZIONE ATTIVA & REGOLE (Frazionata 20%)
-| Stato Esposizione | Prezzo Ingresso | Target Take Profit | Stop Loss |
+### 🎯 3. POSIZIONI APERTE INDIPENDENTI (No Stop-Loss)
+| Tranche | Quantità SOL | Prezzo Ingresso | Target Take Profit (TP) |
 | :--- | :--- | :--- | :--- |
-| `{pos_status}` | `{entry}` | `{tp}` | **DISABILITATO (HODL)** |
+{positions_rows}
+
+*Stato generale:* `{pos_status}`
 
 ---
 
@@ -84,7 +91,7 @@ def update_readme_dashboard(timestamp, price, changes, sma, rsi, signal, portfol
 
 def run_paper_trade():
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{timestamp}] === Avvio Ciclo Bot Trading (Frazionato 20%) ===")
+    print(f"[{timestamp}] === Avvio Ciclo Bot Trading (Posizioni Indipendenti) ===")
     
     price, changes = get_sol_market_data()
     if not price:
@@ -94,57 +101,62 @@ def run_paper_trade():
     portfolio = load_portfolio()
     signal, sma, rsi = analyze_market()
     
-    total_value = portfolio["cash"] + (portfolio["sol"] * price)
-    pnl = total_value - portfolio['initial_capital']
-    
-    action_msg = "Nessuna operazione effettuata."
+    action_logs = []
 
-    # 1. Controllo Take Profit se c'è una posizione aperta (sul prezzo di carico attuale)
-    if portfolio["position_active"] and price >= portfolio["take_profit_price"]:
-        cash_earned = portfolio["sol"] * price
-        portfolio["cash"] += cash_earned
-        action_msg = f"🎯 Take Profit raggiunto a ${price:.2f}! Liquidati tutti i SOL per ${cash_earned:.2f}"
-        print(f">>> {action_msg}")
-        
-        # Reset completo della posizione
-        portfolio["sol"] = 0.0
-        portfolio["position_active"] = False
-        portfolio["entry_price"] = 0.0
-        portfolio["take_profit_price"] = 0.0
-        portfolio["invested_slots"] = 0
+    # 1. CONTROLLO TAKE PROFIT INDIPENDENTE PER CIASCUNA POSIZIONE
+    remaining_positions = []
+    freed_cash = 0.0
 
-    else:
-        # 2. Controllo Segnale d'Acquisto con limite massimo all'80% (max 4 slot da 20%)
-        max_investment_allowed = portfolio['initial_capital'] * 0.80  # 80% di 30$ = 24$
-        current_invested = portfolio['initial_capital'] - portfolio['cash']
-        amount_per_tranche = portfolio['initial_capital'] * 0.20       # 20% di 30$ = 6$
-
-        if "BUY" in signal:
-            if current_invested < max_investment_allowed and portfolio["cash"] >= amount_per_tranche:
-                # Esegue l'acquisto del 20%
-                sol_bought = amount_per_tranche / price
-                portfolio["sol"] += sol_bought
-                portfolio["cash"] -= amount_per_tranche
-                
-                # Aggiorna i dati della posizione
-                portfolio["position_active"] = True
-                portfolio["invested_slots"] += 1
-                portfolio["entry_price"] = price  # Aggiorna al prezzo dell'ultimo acquisto (o media)
-                portfolio["take_profit_price"] = price * 1.05  # Target +5% sul nuovo carico
-                
-                action_msg = f"🛒 Tranche #{portfolio['invested_slots']} (20%): Acquistati {sol_bought:.4f} SOL a ${price:.2f}. TP: ${portfolio['take_profit_price']:.2f}"
-                print(f">>> [ACQUISTO FRAZIONATO] {action_msg}")
-            else:
-                action_msg = "Segnale BUY ricevuto, ma limite massimo di esposizione (80%) raggiunto o cash insufficiente."
-                print(f">>> [CAP RAGGIUNTO] Nessun nuovo acquisto effettuato.")
+    for pos in portfolio['positions']:
+        if price >= pos['tp']:
+            # Questa singola posizione ha raggiunto il suo TP del +5%!
+            sale_value = pos['amount'] * price
+            freed_cash += sale_value
+            action_logs.append(f"🎯 TP raggiunto! Venduti {pos['amount']:.4f} SOL (Entrata: ${pos['entry']:.2f}) a ${price:.2f} per ${sale_value:.2f}")
         else:
-            if portfolio["position_active"]:
-                action_msg = f"Posizione attiva ({portfolio['invested_slots']} slot). In attesa del TP o nuovi segnali."
-            else:
-                action_msg = "In attesa di condizioni di ingresso (RSI/SMA)."
+            # Questa posizione non ha ancora raggiunto il target, resta aperta
+            remaining_positions.append(pos)
 
-    # Ricalcolo finale
-    total_value = portfolio["cash"] + (portfolio["sol"] * price)
+    portfolio['positions'] = remaining_positions
+    portfolio['cash'] += freed_cash
+
+    if freed_cash > 0:
+        print(f">>> [TAKE PROFIT SINGOLO] Chiusa/e tranche in utile. Cash recuperato: ${freed_cash:.2f}")
+
+    # 2. CONTROLLO SEGNALE D'ACQUISTO (Se c'è segnale BUY, spazio e cash)
+    max_investment_allowed = portfolio['initial_capital'] * 0.80  # Max 80% (24$)
+    current_invested = sum(p['cost'] for p in portfolio['positions'])
+    amount_per_tranche = portfolio['initial_capital'] * 0.20       # 20% (6$)
+
+    if "BUY" in signal:
+        if current_invested < max_investment_allowed and portfolio["cash"] >= amount_per_tranche:
+            # Apri una nuova tranche indipendente
+            sol_bought = amount_per_tranche / price
+            new_position = {
+                "amount": sol_bought,
+                "cost": amount_per_tranche,
+                "entry": price,
+                "tp": price * 1.05  # TP fissato al +5% per questa specifica tranche
+            }
+            portfolio['positions'].append(new_position)
+            portfolio["cash"] -= amount_per_tranche
+            
+            msg = f"🛒 Nuova Tranche (20%): Acquistati {sol_bought:.4f} SOL a ${price:.2f}. TP mirato a ${new_position['tp']:.2f}"
+            action_logs.append(msg)
+            print(f">>> [ACQUISTO FRAZIONATO] {msg}")
+        else:
+            msg = "Segnale BUY ricevuto, ma cap 80% raggiunto o cash insufficiente per una nuova tranche."
+            if not action_logs: action_logs.append(msg)
+    else:
+        if not action_logs:
+            num_active = len(portfolio['positions'])
+            action_logs.append(f"In attesa (posizioni attive: {num_active}). Nessun target TP toccato.")
+
+    action_msg = " | ".join(action_logs)
+
+    # Ricalcolo totale portafoglio e P&L
+    total_sol_held = sum(p['amount'] for p in portfolio['positions'])
+    total_value = portfolio["cash"] + (total_sol_held * price)
     pnl = total_value - portfolio['initial_capital']
 
     save_portfolio(portfolio)
