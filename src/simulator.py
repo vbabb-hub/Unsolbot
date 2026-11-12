@@ -4,7 +4,7 @@ from datetime import datetime
 from bot_logic import get_sol_market_data, analyze_market
 
 PORTFOLIO_FILE = "src/portfolio.json"
-REPORT_FILE = "report.md"
+README_FILE = "README.md"
 
 def load_portfolio():
     if os.path.exists(PORTFOLIO_FILE):
@@ -16,16 +16,16 @@ def save_portfolio(portfolio):
     with open(PORTFOLIO_FILE, "w") as f:
         json.dump(portfolio, f, indent=4)
 
-def update_markdown_report(timestamp, price, changes, sma, rsi, signal, portfolio, total_value, pnl, action_msg):
-    """Crea un report visivo completo per la home del repository"""
+def update_readme_dashboard(timestamp, price, changes, sma, rsi, signal, portfolio, total_value, pnl, action_msg):
+    """Scrive la dashboard completa direttamente sul file README.md del repository"""
     
-    pos_status = "🟢 Posizione Aperta" if portfolio["position_active"] else "⚪ Nessuna Posizione (Liquidità disponibile)"
+    pos_status = "🟢 Posizione Aperta (In attesa di Take Profit)" if portfolio["position_active"] else "⚪ Nessuna Posizione (Liquidità disponibile)"
     entry = f"${portfolio['entry_price']:.2f}" if portfolio["position_active"] else "N/A"
-    tp = f"${portfolio['take_profit_price']:.2f} (+5%)" if portfolio["position_active"] else "N/A"
+    tp = f"${portfolio['take_profit_price']:.2f} (+5% Target)" if portfolio["position_active"] else "N/A"
     
-    report_content = f"""# 🤖 Dashboard Bot di Trading Solana ($30)
+    dashboard_content = f"""# 🤖 Dashboard Bot di Trading Solana ($30)
 
-*Ultimo aggiornamento:* `{timestamp} UTC`
+*Ultimo aggiornamento automatico:* `{timestamp} UTC`
 
 ---
 
@@ -43,17 +43,17 @@ def update_markdown_report(timestamp, price, changes, sma, rsi, signal, portfoli
 ## 📈 2. Andamento di Solana (Timeframe)
 | 1 Ora (1h) | 1 Giorno (1d) | 1 Settimana (1w) | 1 Mese (1m) | 1 Anno (1y) | All-Time High |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| `{changes['h']:+.2f}%` | `{changes['1d']:+.2f}%` | `{changes['1w']:+.2f}%` | `{changes['1m']:+.2f}%` | `{changes['1y']:+.2f}%` | `${changes['ath']:.2f}` |
+| `{changes['1h']:+.2f}%` | `{changes['1d']:+.2f}%` | `{changes['1w']:+.2f}%` | `{changes['1m']:+.2f}%` | `{changes['1y']:+.2f}%` | `${changes['ath']:.2f}` |
 
 *(Prezzo attuale SOL: **${price:.2f}**)*
 
 ---
 
-## 📊 3. Posizioni Aperte e Strategia (No Stop-Loss)
+## 📊 3. Posizioni Aperte & Regole (No Stop-Loss)
 - **Stato:** `{pos_status}`
 - **Prezzo di Entrata:** `{entry}`
 - **Target Take Profit (TP):** `{tp}`
-- **Modalità:** *HODL / Long-only (Nessuno Stop Loss attivo)*
+- **Politica di Gestione:** *HODL / Long-only (Nessuno Stop Loss applicato)*
 
 ---
 
@@ -61,13 +61,13 @@ def update_markdown_report(timestamp, price, changes, sma, rsi, signal, portfoli
 - **Media Mobile (SMA 20):** `${sma:.2f}`
 - **RSI (14):** `{rsi:.1f}`
 - **Segnale Algoritmo:** `{signal}`
-- **Azione Recente:** `{action_msg}`
+- **Ultima Azione Registrata:** `{action_msg}`
 
 ---
-*Bot autonomo eseguito tramite GitHub Actions.*
+*Bot autonomo sviluppato in Python e schedulato tramite GitHub Actions (Modalità Paper Trading).*
 """
-    with open(REPORT_FILE, "w", encoding="utf-8") as f:
-        f.write(report_content)
+    with open(README_FILE, "w", encoding="utf-8") as f:
+        f.write(dashboard_content)
 
 def run_paper_trade():
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -89,7 +89,6 @@ def run_paper_trade():
     # 1. Controllo Take Profit se c'è una posizione aperta (SENZA STOP LOSS)
     if portfolio["position_active"]:
         if price >= portfolio["take_profit_price"]:
-            # Raggiunto il Take Profit! Vendi tutto in utile
             cash_earned = portfolio["sol"] * price
             portfolio["cash"] += cash_earned
             action_msg = f"🎯 Take Profit raggiunto a ${price:.2f}! Venduti {portfolio['sol']:.4f} SOL per ${cash_earned:.2f}"
@@ -111,8 +110,7 @@ def run_paper_trade():
             portfolio["cash"] = 0.0
             portfolio["position_active"] = True
             portfolio["entry_price"] = price
-            # Imposta un Take Profit al +5% (senza stop loss)
-            portfolio["take_profit_price"] = price * 1.05 
+            portfolio["take_profit_price"] = price * 1.05  # Target +5%
             
             action_msg = f"🛒 Acquistati {sol_bought:.4f} SOL a ${price:.2f}. TP impostato a ${portfolio['take_profit_price']:.2f}."
             print(f">>> [ACQUISTO] {action_msg}")
@@ -123,7 +121,7 @@ def run_paper_trade():
     pnl = total_value - portfolio['initial_capital']
 
     save_portfolio(portfolio)
-    update_markdown_report(timestamp, price, {'h': changes['1h'], '1d': changes['1d'], '1w': changes['1w'], '1m': changes['1m'], '1y': changes['1y'], 'ath': changes['ath']}, sma, rsi, signal, portfolio, total_value, pnl, action_msg)
+    update_readme_dashboard(timestamp, price, changes, sma, rsi, signal, portfolio, total_value, pnl, action_msg)
     
     print("=== Ciclo completato con successo ===")
 
