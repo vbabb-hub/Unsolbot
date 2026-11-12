@@ -29,7 +29,6 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
     invested_capital = sum(p['cost'] for p in portfolio['positions'])
     total_sol = sum(p['amount'] for p in portfolio['positions'])
     
-    # Esposizione percentuale sul capitale totale CORRENTE
     exposure_pct = (invested_capital / total_value * 100) if total_value > 0 else 0.0
     num_pos = len(portfolio['positions'])
     pnl_pct = (pnl / portfolio['initial_capital']) * 100
@@ -43,7 +42,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
             pos_rows_html += f"""
             <tr class="border-b border-slate-800 hover:bg-slate-800/40 transition">
                 <td class="py-3 px-3 font-medium text-slate-200">#{i}</td>
-                <td class="py-3 px-3 font-mono text-slate-300">{pos['amount']:.4f} SOL</td>
+                <td class="py-3 px-3 font-mono text-slate-300">{pos['amount']:.4f} SOL <span class="text-xs text-slate-500">(${pos['cost']:.2f})</span></td>
                 <td class="py-3 px-3 font-mono text-slate-300">${pos['entry']:.2f}</td>
                 <td class="py-3 px-3 font-mono text-amber-400 font-semibold">${pos['tp']:.2f}</td>
                 <td class="py-3 px-3 font-mono {pos_color} text-right">{pos_pnl_pct:+.2f}%</td>
@@ -166,7 +165,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
                         <thead>
                             <tr class="border-b border-slate-800 text-xs uppercase text-slate-500">
                                 <th class="py-2 px-3">Slot</th>
-                                <th class="py-2 px-3">Quantità</th>
+                                <th class="py-2 px-3">Quantità / Investito</th>
                                 <th class="py-2 px-3">Ingresso</th>
                                 <th class="py-2 px-3">Target TP</th>
                                 <th class="py-2 px-3 text-right">Stato</th>
@@ -215,7 +214,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
     md_positions = ""
     if num_pos > 0:
         for i, pos in enumerate(portfolio['positions'], 1):
-            md_positions += f"| Tranche #{i} | {pos['amount']:.4f} SOL | ${pos['entry']:.2f} | ${pos['tp']:.2f} (+5%) |\n"
+            md_positions += f"| Tranche #{i} | {pos['amount']:.4f} SOL (${pos['cost']:.2f}) | ${pos['entry']:.2f} | ${pos['tp']:.2f} (+5%) |\n"
     else:
         md_positions = "| Nessuna posizione attiva | --- | --- | --- |\n"
 
@@ -248,7 +247,7 @@ def update_dashboards(timestamp, price, changes, sma, rsi, signal, portfolio, to
 
 ### 🎯 3. Posizioni Aperte ({num_pos} Tranches - No Stop-Loss)
 
-| Tranche | Quantità | Ingresso | Target TP (+5%) |
+| Tranche | Quantità / Investito | Ingresso | Target TP (+5%) |
 | :--- | :--- | :--- | :--- |
 {md_positions}
 ---
@@ -279,7 +278,6 @@ def run_paper_trade():
     
     action_logs = []
 
-    # Calcolo preliminare del valore totale corrente del portafoglio prima delle azioni
     total_sol_held = sum(p['amount'] for p in portfolio['positions'])
     total_value = portfolio["cash"] + (total_sol_held * price)
 
@@ -298,15 +296,12 @@ def run_paper_trade():
     portfolio['positions'] = remaining_positions
     portfolio['cash'] += freed_cash
 
-    # Ricalcoliamo il valore totale dopo aver eventualmente incassato i Take Profit
     total_sol_held = sum(p['amount'] for p in portfolio['positions'])
     total_value = portfolio["cash"] + (total_sol_held * price)
 
     # 2. CONTROLLO SEGNALE D'ACQUISTO CON CAPITALE DINAMICO (20% del totale corrente)
-    max_investment_allowed = total_value * 0.80  # Max 80% del valore totale corrente
+    max_investment_allowed = total_value * 0.80
     current_invested = sum(p['cost'] for p in portfolio['positions'])
-    
-    # La tranche è esattamente il 20% del VALORE TOTALE CORRENTE del portafoglio
     amount_per_tranche = total_value * 0.20
 
     if "BUY" in signal:
@@ -333,7 +328,6 @@ def run_paper_trade():
 
     action_msg = " | ".join(action_logs)
 
-    # Ricalcolo finale post-operazione
     total_sol_held = sum(p['amount'] for p in portfolio['positions'])
     total_value = portfolio["cash"] + (total_sol_held * price)
     pnl = total_value - portfolio['initial_capital']
