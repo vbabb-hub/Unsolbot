@@ -1,42 +1,43 @@
-# 🤖 Dashboard Bot di Trading Solana ($30)
+# 🤖 Solana Algorithmic Trading Bot ($30 Paper Portfolio)
 
-*Ultimo aggiornamento automatico:* `2026-11-12 09:09:11 UTC`
+*Ultimo aggiornamento:* `2026-11-12 09:23:05 UTC`
 
 ---
 
-## 💰 1. Capitale e Portafoglio
+### 📦 1. PORTAFOGLIO & CAPITALE
 | Metrica | Valore |
 | :--- | :--- |
 | **Capitale Iniziale** | `$30.00` |
-| **Liquidità Residua (Cash)** | **`$0.00`** |
-| **Solana in Portafoglio** | `0.3621 SOL` |
-| **Valore Totale Portafoglio** | **$29.97** |
-| **Profitto / Perdita (P&L)** | **$-0.03** (-0.10% ) |
+| **Cash Disponibile** | `$0.00` |
+| **Asset in SOL** | `0.3621 SOL` |
+| **Valore Totale** | **$29.94** |
+| **Performance (P&L)** | 🔴 **$-0.06** (-0.21% ) |
 
 ---
 
-## 📈 2. Andamento di Solana (Timeframe)
-| 1 Ora (1h) | 1 Giorno (1d) | 1 Settimana (1w) | 1 Mese (1m) | 1 Anno (1y) | All-Time High |
+### 📊 2. TREND SOLANA (TIMEFRAME)
+| 1h | 1d | 1w | 1m | 1y | ATH |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| `-0.21%` | `-0.27%` | `-14.40%` | `-23.10%` | `-47.59%` | `$293.31` |
+| `-0.27%` | `-0.32%` | `-14.49%` | `-23.19%` | `-47.65%` | **`$293.31`** |
 
-*(Prezzo attuale SOL: **$82.76**)*
-
----
-
-## 📊 3. Posizioni Aperte & Regole (No Stop-Loss)
-- **Stato:** `🟢 Posizione Aperta (In attesa di Take Profit)`
-- **Prezzo di Entrata:** `$82.84`
-- **Target Take Profit (TP):** `$86.98 (+5% Target)`
-- **Politica di Gestione:** *HODL / Long-only (Nessuno Stop Loss applicato)*
+*(Prezzo spot attuale: **$82.67**)*
 
 ---
 
-## 🔬 4. Diagnostica Tecnica & Ultima Azione
-- **Media Mobile (SMA 20):** `$82.85`
-- **RSI (14):** `37.2`
-- **Segnale Algoritmo:** `HOLD (Attesa)`
-- **Ultima Azione Registrata:** `Posizione attiva. In attesa del TP ($86.98). Nessuno Stop Loss applicato.`
+### 🎯 3. POSIZIONE ATTIVA & REGOLE
+| Stato | Prezzo Ingresso | Target Take Profit | Stop Loss |
+| :--- | :--- | :--- | :--- |
+| `🟢 POSIZIONE APERTA (In attesa di TP)` | `$82.84` | `$86.98 (+5%)` | **DISABILITATO (HODL)** |
 
 ---
-*Bot autonomo sviluppato in Python e schedulato tramite GitHub Actions (Modalità Paper Trading).*
+
+### ⚙️ 4. DIAGNOSTICA TECNICA & ULTIMO EVENTO
+| Indicatore / Log | Stato Corrente |
+| :--- | :--- |
+| **Media Mobile (SMA 20)** | `$82.83` |
+| **RSI (14 periodi)** | `36.2` |
+| **Segnale Modello** | `HOLD (Attesa)` |
+| **Ultima Azione** | `Posizione attiva. In attesa del TP ($86.98). Nessuno Stop Loss applicato.` |
+
+---
+*Esecuzione automatica tramite GitHub Actions.*
