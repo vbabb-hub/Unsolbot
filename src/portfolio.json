@@ -1,5 +1,8 @@
 {
   "cash": 30.00,
   "sol": 0.0,
-  "initial_capital": 30.00
+  "initial_capital": 30.00,
+  "position_active": false,
+  "entry_price": 0.0,
+  "take_profit_price": 0.0
 }
