@@ -1,33 +1,36 @@
 # 🤖 Solana Algorithmic Trading Bot ($30 Paper Portfolio)
 
-*Ultimo aggiornamento:* `2026-11-12 09:23:05 UTC`
+*Ultimo aggiornamento:* `2026-11-12 09:28:49 UTC`
 
 ---
 
-### 📦 1. PORTAFOGLIO & CAPITALE
+### 📦 1. PORTAFOGLIO & CAPITALE (Max 4 Tranches da 20%)
 | Metrica | Valore |
 | :--- | :--- |
 | **Capitale Iniziale** | `$30.00` |
-| **Cash Disponibile** | `$0.00` |
-| **Asset in SOL** | `0.3621 SOL` |
-| **Valore Totale** | **$29.94** |
-| **Performance (P&L)** | 🔴 **$-0.06** (-0.21% ) |
+| **Cash Disponibile** | `$24.00` |
+| **Asset Totali in SOL** | `0.0724 SOL` |
+| **Valore Totale** | **$30.00** |
+| **Performance (P&L)** | 🟢 **$+0.00** (+0.00% ) |
 
 ---
 
 ### 📊 2. TREND SOLANA (TIMEFRAME)
 | 1h | 1d | 1w | 1m | 1y | ATH |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| `-0.27%` | `-0.32%` | `-14.49%` | `-23.19%` | `-47.65%` | **`$293.31`** |
+| `+0.07%` | `-0.31%` | `-14.29%` | `-23.00%` | `-47.52%` | **`$293.31`** |
 
-*(Prezzo spot attuale: **$82.67**)*
+*(Prezzo spot attuale: **$82.86**)*
 
 ---
 
-### 🎯 3. POSIZIONE ATTIVA & REGOLE
-| Stato | Prezzo Ingresso | Target Take Profit | Stop Loss |
+### 🎯 3. POSIZIONI APERTE INDIPENDENTI (No Stop-Loss)
+| Tranche | Quantità SOL | Prezzo Ingresso | Target Take Profit (TP) |
 | :--- | :--- | :--- | :--- |
-| `🟢 POSIZIONE APERTA (In attesa di TP)` | `$82.84` | `$86.98 (+5%)` | **DISABILITATO (HODL)** |
+| Tranche #1 | 0.0724 SOL | $82.86 | $87.00 (+5%) |
+
+
+*Stato generale:* `🟢 ATTIVO (1 posizioni aperte - 20% capitale)`
 
 ---
 
@@ -35,9 +38,9 @@
 | Indicatore / Log | Stato Corrente |
 | :--- | :--- |
 | **Media Mobile (SMA 20)** | `$82.83` |
-| **RSI (14 periodi)** | `36.2` |
-| **Segnale Modello** | `HOLD (Attesa)` |
-| **Ultima Azione** | `Posizione attiva. In attesa del TP ($86.98). Nessuno Stop Loss applicato.` |
+| **RSI (14 periodi)** | `49.8` |
+| **Segnale Modello** | `BUY_SIGNAL (Trend Rialzista)` |
+| **Ultima Azione** | `🛒 Nuova Tranche (20%): Acquistati 0.0724 SOL a $82.86. TP mirato a $87.00` |
 
 ---
 *Esecuzione automatica tramite GitHub Actions.*

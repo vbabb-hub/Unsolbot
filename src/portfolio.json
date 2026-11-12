@@ -1,5 +1,12 @@
 {
-  "cash": 30.00,
-  "initial_capital": 30.00,
-  "positions": []
+    "cash": 24.0,
+    "initial_capital": 30.0,
+    "positions": [
+        {
+            "amount": 0.07241129616220131,
+            "cost": 6.0,
+            "entry": 82.86,
+            "tp": 87.003
+        }
+    ]
 }
