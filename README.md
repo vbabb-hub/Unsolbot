@@ -1,7 +1,7 @@
 # 🤖 Unsolbot - Solana Paper Trading ($30)
 
 🌐 **Dashboard Web Live:** [https://vbabb-hub.github.io/Unsolbot/](https://vbabb-hub.github.io/Unsolbot/)  
-*Ultimo aggiornamento:* `2026-11-21 19:52:25 UTC`
+*Ultimo aggiornamento:* `2026-11-21 20:29:28 UTC`
 
 ---
 
@@ -12,16 +12,16 @@
 | **Capitale Iniziale** | `$30.00` |
 | **Cash Disponibile** | `$0.58` |
 | **Asset in SOL** | `0.3846 SOL` |
-| **Valore Totale** | **$27.72** |
-| **Performance (P&L)** | **$-2.28** (-7.61%) |
+| **Valore Totale** | **$27.71** |
+| **Performance (P&L)** | **$-2.29** (-7.62%) |
 
 ---
 
-### 📊 2. Trend Solana (`$70.57`)
+### 📊 2. Trend Solana (`$70.56`)
 
 | 1h | 1d | 1w | 1m | 1y | ATH |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| `-0.18%` | `+3.52%` | `-2.26%` | `-31.83%` | `-45.52%` | **`$293.31`** |
+| `+0.02%` | `+3.15%` | `-2.38%` | `-31.85%` | `-44.88%` | **`$293.31`** |
 
 ---
 
@@ -41,7 +41,7 @@
 
 | Parametro | Valore |
 | :--- | :--- |
-| **SMA (20)** | `$70.65` |
-| **RSI (14)** | `36.0` |
+| **SMA (20)** | `$70.57` |
+| **RSI (14)** | `41.2` |
 | **Segnale** | `HOLD (Attesa)` |
-| **Evento** | `In attesa (posizioni attive: 5). Trend OK: False, RSI Corrente: 36.0` |
+| **Evento** | `In attesa (posizioni attive: 5). Trend OK: False, RSI Corrente: 41.2` |
